@@ -233,6 +233,7 @@ export class Consumer extends EventEmitter {
       await this.deleteMessage(message);
       this.emit('message_processed', message);
     } catch (err) {
+      clearInterval(heartbeat);
       this.emitError(err, message);
 
       if (this.terminateVisibilityTimeout) {
@@ -467,8 +468,8 @@ export class Consumer extends EventEmitter {
   }
 
   private startHeartbeat(heartbeatFn: () => void): NodeJS.Timeout {
-    return setInterval(() => {
-      heartbeatFn();
+    return setInterval(async () => {
+      await heartbeatFn();
     }, this.heartbeatInterval * 1000);
   }
 }
