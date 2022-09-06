@@ -100,6 +100,8 @@ interface Events {
   'empty': [];
   'message_received': [SQSMessage];
   'message_processed': [SQSMessage];
+  'visibility_updated': [SQSMessage, number];
+  'visibility_error': [Error, SQSMessage, number];
   'error': [Error, void | SQSMessage | SQSMessage[]];
   'timeout_error': [Error, SQSMessage];
   'processing_error': [Error, SQSMessage];
@@ -297,16 +299,18 @@ export class Consumer extends EventEmitter {
   }
 
   private async changeVisabilityTimeout(message: SQSMessage, timeout: number): Promise<PromiseResult<any, AWSError>> {
+    const time = Date.now();
     try {
-      return await this.sqs
+      await this.sqs
         .changeMessageVisibility({
           QueueUrl: this.queueUrl,
           ReceiptHandle: message.ReceiptHandle,
           VisibilityTimeout: timeout
         })
         .promise();
+      this.emit('visibility_updated', message, Date.now() - time);
     } catch (err) {
-      this.emit('error', err, message);
+      this.emit('visibility_error', err, message, Date.now() - time);
     }
   }
 
